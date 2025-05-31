@@ -1,14 +1,14 @@
-name: RDP Permanent via TCP
+name: RDP via GitHub + localhost.run
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  rdp:
     runs-on: ubuntu-latest
     name: Start RDP Session
     steps:
-      - name: Update & Install Desktop Environment
+      - name: Install Desktop & RDP
         run: |
           sudo apt update -y
           sudo apt install -y xfce4 xfce4-goodies xrdp
@@ -19,19 +19,23 @@ jobs:
           echo "github ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/github
           sudo systemctl restart xrdp
 
-      - name: Setup Tunnel with localhost.run
+      - name: Generate SSH Key
+        run: |
+          ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
+          cat ~/.ssh/id_rsa.pub
+
+      - name: Tunnel with localhost.run (TCP 3389)
         run: |
           sudo apt install -y openssh-client
           echo "======================================"
-          echo "Login ke RDP dengan:"
-          echo "Host: ssh.localhost.run"
-          echo "Port: akan ditampilkan di bawah"
+          echo "TUNNEL READY"
           echo "Username: github"
           echo "Password: 123456"
+          echo "Copy this SSH command below in your terminal:"
+          echo "ssh -i <private-key-file> -R 3389:localhost:3389 ssh.localhost.run"
           echo "======================================"
-          ssh -o StrictHostKeyChecking=no -R 3389:localhost:3389 ssh.localhost.run
+          # Now actually connect
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -R 3389:localhost:3389 ssh.localhost.run || true
 
-      - name: Keep Alive
-        run: |
-          echo "RDP aktif selama 6 jam"
-          sleep 21600
+      - name: Keep Running
+        run: sleep 21600  # 6 hours
