@@ -1,0 +1,37 @@
+name: RDP Permanent via TCP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Start RDP Session
+    steps:
+      - name: Update & Install Desktop Environment
+        run: |
+          sudo apt update -y
+          sudo apt install -y xfce4 xfce4-goodies xrdp
+          sudo systemctl enable xrdp
+          sudo adduser github --gecos "" --disabled-password
+          echo "github:123456" | sudo chpasswd
+          sudo usermod -aG sudo github
+          echo "github ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/github
+          sudo systemctl restart xrdp
+
+      - name: Setup Tunnel with localhost.run
+        run: |
+          sudo apt install -y openssh-client
+          echo "======================================"
+          echo "Login ke RDP dengan:"
+          echo "Host: ssh.localhost.run"
+          echo "Port: akan ditampilkan di bawah"
+          echo "Username: github"
+          echo "Password: 123456"
+          echo "======================================"
+          ssh -o StrictHostKeyChecking=no -R 3389:localhost:3389 ssh.localhost.run
+
+      - name: Keep Alive
+        run: |
+          echo "RDP aktif selama 6 jam"
+          sleep 21600
