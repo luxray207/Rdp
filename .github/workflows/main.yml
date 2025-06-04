@@ -1,17 +1,17 @@
-name: VNC via Remote Tunnel
+name: VNC via Localhost.run
 
 on:
   workflow_dispatch:
 
 jobs:
-  start-vnc:
+  vnc:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install XFCE & VNC server
+    - name: Install dependencies (XFCE + VNC + SSH)
       run: |
         sudo apt update
-        sudo apt install -y xfce4 xfce4-goodies tightvncserver wget git
+        sudo apt install -y xfce4 xfce4-goodies tightvncserver openssh-client
 
     - name: Set up VNC password
       run: |
@@ -19,21 +19,23 @@ jobs:
         echo "123456" | vncpasswd -f > ~/.vnc/passwd
         chmod 600 ~/.vnc/passwd
 
-    - name: Start virtual display (Xvfb)
+    - name: Start VNC Server
       run: |
         export DISPLAY=:1
         vncserver :1
+        echo "VNC Server running on :1 (port 5901)"
 
-    - name: Install Remote Tunnel
+    - name: Start SSH tunnel via localhost.run
       run: |
-        curl -s https://raw.githubusercontent.com/junegunn/remote-tunnel/main/install.sh | bash
+        echo "Starting tunnel..."
+        ssh -o StrictHostKeyChecking=no -R 5901:localhost:5901 tunnel@localhost.run > tunnel.log 2>&1 &
 
-    - name: Start Remote Tunnel to expose VNC (port 5901)
+    - name: Wait and Show tunnel log
       run: |
-        ./rtunnel 5901 > tunnel.txt &
         sleep 10
-        echo "TUNNEL LINK:"
-        cat tunnel.txt | grep 'Forwarding'
+        echo "===== Tunnel Status ====="
+        cat tunnel.log || true
+        echo "========================="
 
-    - name: Keep the session alive
+    - name: Keep workflow alive for 1 hour
       run: sleep 3600
