@@ -1,41 +1,39 @@
-name: RDP via GitHub + localhost.run
+name: VNC via Remote Tunnel
 
 on:
   workflow_dispatch:
 
 jobs:
-  rdp:
+  start-vnc:
     runs-on: ubuntu-latest
-    name: Start RDP Session
+
     steps:
-      - name: Install Desktop & RDP
-        run: |
-          sudo apt update -y
-          sudo apt install -y xfce4 xfce4-goodies xrdp
-          sudo systemctl enable xrdp
-          sudo adduser github --gecos "" --disabled-password
-          echo "github:123456" | sudo chpasswd
-          sudo usermod -aG sudo github
-          echo "github ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/github
-          sudo systemctl restart xrdp
+    - name: Install XFCE & VNC server
+      run: |
+        sudo apt update
+        sudo apt install -y xfce4 xfce4-goodies tightvncserver wget git
 
-      - name: Generate SSH Key
-        run: |
-          ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
-          cat ~/.ssh/id_rsa.pub
+    - name: Set up VNC password
+      run: |
+        mkdir -p ~/.vnc
+        echo "123456" | vncpasswd -f > ~/.vnc/passwd
+        chmod 600 ~/.vnc/passwd
 
-      - name: Tunnel with localhost.run (TCP 3389)
-        run: |
-          sudo apt install -y openssh-client
-          echo "======================================"
-          echo "TUNNEL READY"
-          echo "Username: github"
-          echo "Password: 123456"
-          echo "Copy this SSH command below in your terminal:"
-          echo "ssh -i <private-key-file> -R 3389:localhost:3389 ssh.localhost.run"
-          echo "======================================"
-          # Now actually connect
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -R 3389:localhost:3389 ssh.localhost.run || true
+    - name: Start virtual display (Xvfb)
+      run: |
+        export DISPLAY=:1
+        vncserver :1
 
-      - name: Keep Running
-        run: sleep 21600  # 6 hours
+    - name: Install Remote Tunnel
+      run: |
+        curl -s https://raw.githubusercontent.com/junegunn/remote-tunnel/main/install.sh | bash
+
+    - name: Start Remote Tunnel to expose VNC (port 5901)
+      run: |
+        ./rtunnel 5901 > tunnel.txt &
+        sleep 10
+        echo "TUNNEL LINK:"
+        cat tunnel.txt | grep 'Forwarding'
+
+    - name: Keep the session alive
+      run: sleep 3600
