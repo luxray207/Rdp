@@ -1,4 +1,4 @@
-name: VNC via Loophole Tunnel (No Token)
+name: VNC via Localhost.run with SSH Key
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
     - name: Install XFCE + VNC
       run: |
         sudo apt update
-        sudo apt install -y xfce4 xfce4-goodies tightvncserver
+        sudo apt install -y xfce4 xfce4-goodies tightvncserver openssh-client
 
     - name: Set up VNC password
       run: |
@@ -22,21 +22,28 @@ jobs:
     - name: Start VNC server
       run: vncserver :1
 
-    - name: Install Loophole
+    - name: Generate SSH key and show public key
+      id: sshkey
       run: |
-        curl -s https://loophole.cloud/install | bash
-        sudo mv loophole /usr/local/bin/
+        ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
+        echo "================ SSH PUBLIC KEY ================="
+        cat ~/.ssh/id_rsa.pub
+        echo "================================================="
+        echo "Add this key to: https://admin.localhost.run"
 
-    - name: Start Loophole TCP Tunnel
+    - name: Start tunnel with localhost.run
       run: |
-        nohup loophole tcp 5901 > loophole.log 2>&1 &
-
-    - name: Wait and show Tunnel URL
-      run: |
+        echo "⏳ Waiting 10s to ensure you’ve added the SSH key to https://admin.localhost.run ..."
         sleep 10
-        echo "===== LOOPHOLE TUNNEL LOG ====="
-        cat loophole.log | grep "Forwarding TCP" || true
-        echo "================================"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -R 5901:localhost:5901 tunnel@localhost.run > tunnel.log 2>&1 &
+        sleep 5
 
-    - name: Keep alive
+    - name: Show tunnel log (URL VNC)
+      run: |
+        echo "🔗 Tunnel log output:"
+        echo "================================================="
+        cat tunnel.log || true
+        echo "================================================="
+
+    - name: Keep workflow alive for 1 hour
       run: sleep 3600
