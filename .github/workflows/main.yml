@@ -1,4 +1,4 @@
-name: VNC via Localhost.run
+name: VNC via Loophole Tunnel (No Token)
 
 on:
   workflow_dispatch:
@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install dependencies (XFCE + VNC + SSH)
+    - name: Install XFCE + VNC
       run: |
         sudo apt update
-        sudo apt install -y xfce4 xfce4-goodies tightvncserver openssh-client
+        sudo apt install -y xfce4 xfce4-goodies tightvncserver
 
     - name: Set up VNC password
       run: |
@@ -19,23 +19,24 @@ jobs:
         echo "123456" | vncpasswd -f > ~/.vnc/passwd
         chmod 600 ~/.vnc/passwd
 
-    - name: Start VNC Server
-      run: |
-        export DISPLAY=:1
-        vncserver :1
-        echo "VNC Server running on :1 (port 5901)"
+    - name: Start VNC server
+      run: vncserver :1
 
-    - name: Start SSH tunnel via localhost.run
+    - name: Install Loophole
       run: |
-        echo "Starting tunnel..."
-        ssh -o StrictHostKeyChecking=no -R 5901:localhost:5901 tunnel@localhost.run > tunnel.log 2>&1 &
+        curl -s https://loophole.cloud/install | bash
+        sudo mv loophole /usr/local/bin/
 
-    - name: Wait and Show tunnel log
+    - name: Start Loophole TCP Tunnel
+      run: |
+        nohup loophole tcp 5901 > loophole.log 2>&1 &
+
+    - name: Wait and show Tunnel URL
       run: |
         sleep 10
-        echo "===== Tunnel Status ====="
-        cat tunnel.log || true
-        echo "========================="
+        echo "===== LOOPHOLE TUNNEL LOG ====="
+        cat loophole.log | grep "Forwarding TCP" || true
+        echo "================================"
 
-    - name: Keep workflow alive for 1 hour
+    - name: Keep alive
       run: sleep 3600
