@@ -1,55 +1,32 @@
-name: VNC via noVNC + Localhost.run + SSH Key
+name: ci
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - "main"
 
 jobs:
-  vnc:
+  docker:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Install XFCE, VNC, noVNC & dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y xfce4 xfce4-goodies tightvncserver git python3 python3-websockify openssh-client
-        git clone https://github.com/novnc/noVNC.git ~/noVNC
-        git clone https://github.com/novnc/websockify ~/noVNC/utils/websockify
-
-    - name: Set VNC password & start VNC server
-      run: |
-        mkdir -p ~/.vnc
-        echo "123456" | vncpasswd -f > ~/.vnc/passwd
-        chmod 600 ~/.vnc/passwd
-        vncserver :1
-
-    - name: Generate SSH Key and Show Public Key
-      run: |
-        mkdir -p ~/.ssh
-        ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
-        echo "👇👇👇 PUBLIC KEY (Copy it to https://admin.localhost.run to get your own subdomain) 👇👇👇"
-        cat ~/.ssh/id_rsa.pub
-        echo "⏳ Waiting 1 minute so you can copy and paste the public key..."
-        sleep 60
-
-    - name: Start noVNC server
-      run: |
-        export DISPLAY=:1
-        nohup ~/noVNC/utils/launch.sh --vnc localhost:5901 --listen 6080 > novnc.log 2>&1 &
-
-    - name: Wait for noVNC to fully start
-      run: sleep 10
-
-    - name: Start SSH Tunnel to localhost.run (port 6080 for web access)
-      run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -R 80:localhost:6080 tunnel@localhost.run > tunnel.log 2>&1 &
-
-    - name: Show Tunnel URL
-      run: |
-        sleep 5
-        echo "🔗 Tunnel log output:"
-        echo "================================================="
-        cat tunnel.log || true
-        echo "================================================="
-
-    - name: Keep it alive for 20 hours
-      run: sleep 72000
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PAT }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: cloud
+          endpoint: "siswanto90/vnc"
+          install: true
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          tags: "${{ vars.DOCKER_USER }}/docker-build-cloud-demo:latest"
+          # For pull requests, export results to the build cache.
+          # Otherwise, push to a registry.
+          outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || 'type=registry' }}
+  
