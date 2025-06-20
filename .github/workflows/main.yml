@@ -35,21 +35,21 @@ jobs:
         sleep 15
         echo "✅ Open WebUI running on port 3000."
 
-   - name: Create SSH key
-        run: |
-          ssh-keygen -t rsa -b 2048 -f /tmp/id_rsa -N ""
-          echo "-----BEGIN PUBLIC KEY-----"
-          cat /tmp/id_rsa.pub
-          echo "-----END PUBLIC KEY-----"
-          echo "Add the above public key to https://localhost.run SSH page"
-          echo "Waiting 50 seconds..."
-          sleep 50
+    - name: Create SSH key
+      run: |
+        ssh-keygen -t rsa -b 2048 -f /tmp/id_rsa -N ""
+        echo "-----BEGIN PUBLIC KEY-----"
+        cat /tmp/id_rsa.pub
+        echo "-----END PUBLIC KEY-----"
+        echo "Add the above public key to https://localhost.run SSH page (if needed)"
+        echo "Waiting 50 seconds for you to copy public key..."
+        sleep 50
 
-      - name: SSH Tunnel to localhost.run
-        run: |
-          ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:3000 ssh.localhost.run &
-          ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 8080:localhost:8080 ssh.localhost.run &
-          echo "Tunnel started"
+    - name: SSH Tunnel to localhost.run
+      run: |
+        ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:3000 localhost.run &
+        sleep 10
+        echo "✅ Tunnel started. Public URL should appear above!"
 
     - name: Keep Action Alive
       run: |
