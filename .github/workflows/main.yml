@@ -1,7 +1,7 @@
 name: Ollama Phi WebUI with SSH and Public URL
 
 on:
-  workflow_dispatch: # Bisa dijalankan manual dari GitHub
+  workflow_dispatch: # Manual trigger
 
 jobs:
   ollama-phi:
@@ -14,31 +14,45 @@ jobs:
     - name: Install Ollama
       run: |
         curl https://ollama.com/install.sh | sh
-        ollama serve & sleep 5
+        nohup ollama serve > ollama.log 2>&1 &
+        sleep 10
+        echo "✅ Ollama Serve started."
+        pgrep ollama || (echo "❌ ERROR: Ollama not running!" && exit 1)
 
     - name: Pull Phi model
       run: |
-        ollama pull phi
+        ollama pull phi || (echo "❌ ERROR: Failed to pull Phi model." && exit 1)
+        echo "✅ Phi model pulled."
 
     - name: Run Open WebUI
       run: |
-        docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
-        sleep 10
+        docker run -d -p 3000:8080 \
+          --add-host=host.docker.internal:host-gateway \
+          -v open-webui:/app/backend/data \
+          --name open-webui \
+          --restart always \
+          ghcr.io/open-webui/open-webui:main
+        sleep 15
+        echo "✅ Open WebUI running on port 3000."
 
-    - name: Install localhost.run
+    - name: Generate SSH key and show public key
       run: |
         sudo apt-get install -y openssh-client
         ssh-keygen -t rsa -b 4096 -N "" -f id_rsa
         echo "==== SSH Public Key ===="
         cat id_rsa.pub
-        echo "======================="
-        sleep 40
+        echo "========================"
+        echo "Sleeping 60 seconds... COPY your public key now."
+        sleep 60
+
+    - name: Run localhost.run and expose port 3000
+      run: |
         curl -fsSL https://local.run | sh
         ./localrun http://localhost:3000 &
-        sleep 5
-        echo "Localhost.run URL should appear above!"
+        sleep 10
+        echo "✅ Localhost.run tunnel started."
 
     - name: Keep Action Alive
       run: |
-        echo "Setup complete. Keep container alive for 6h (max GitHub Action runtime)."
+        echo "✅ Setup complete. Keeping container alive for 6h (max GitHub Actions runtime)."
         sleep 21600
