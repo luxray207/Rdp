@@ -35,7 +35,7 @@ jobs:
         sleep 15
         echo "✅ Open WebUI running on port 3000."
 
-    - name: Generate SSH key and show public key
+    - name: Run localhost.run and expose port 3000 to public HTTP port 80
       run: |
         sudo apt-get install -y openssh-client
         ssh-keygen -t rsa -b 4096 -N "" -f id_rsa
@@ -44,11 +44,10 @@ jobs:
         echo "========================"
         echo "Sleeping 60 seconds... COPY your public key now."
         sleep 60
-
-    - name: Run localhost.run and expose port 3000
-      run: |
-        curl -fsSL https://local.run | sh
-        ./localrun http://localhost:3000 &
+        echo "Starting localhost.run tunnel..."
+        ssh -o StrictHostKeyChecking=no -R 80:localhost:3000 localhost.run &
+        sleep 10
+        echo "✅ Tunnel created: public URL will appear in logs."
         sleep 10
         echo "✅ Localhost.run tunnel started."
 
