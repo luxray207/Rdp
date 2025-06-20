@@ -35,7 +35,7 @@ jobs:
         sleep 15
         echo "✅ Open WebUI running on port 3000."
 
-          - name: Create SSH key
+   - name: Create SSH key
         run: |
           ssh-keygen -t rsa -b 2048 -f /tmp/id_rsa -N ""
           echo "-----BEGIN PUBLIC KEY-----"
