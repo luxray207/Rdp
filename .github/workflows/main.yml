@@ -45,7 +45,7 @@ jobs:
         echo "Sleeping 60 seconds... COPY your public key now."
         sleep 60
         echo "Starting localhost.run tunnel..."
-        ssh -o StrictHostKeyChecking=no -R 80:localhost:3000 localhost.run &
+        ssh -o StrictHostKeyChecking=yes -R 80:localhost:3000 localhost.run &
         sleep 10
         echo "✅ Tunnel created: public URL will appear in logs."
         sleep 10
